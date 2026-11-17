@@ -1,0 +1,17 @@
+{
+  "name": "agent-browser-guard",
+  "version": "0.1.0",
+  "description": "A browser for a person's agents with the person's own signed-in profile: Microsoft's Playwright MCP server behind rules an agent cannot switch off.",
+  "type": "module",
+  "license": "MIT",
+  "private": true,
+  "bin": { "agent-browser-guard": "agent-browser-guard.mjs" },
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\"",
+    "test:browser": "node --test \"test-browser/*.test.mjs\""
+  },
+  "dependencies": {
+    "@playwright/mcp": "0.0.85"
+  }
+}
