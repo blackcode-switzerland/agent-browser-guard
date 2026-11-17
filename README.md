@@ -15,7 +15,14 @@ It wraps Microsoft's [Playwright MCP server](https://github.com/microsoft/playwr
   3. the tools that run arbitrary script (which could undo 2) are removed.
 - The person signs in themselves. The agent calls `browser_human_sign_in` with the page address: the agent's browser is closed, a visible window opens on the same profile with no agent connected, and the agent continues when the person closes it.
 
-## Use
+## Install for yourself
+
+Windows: `powershell -ExecutionPolicy Bypass -File install\install.ps1`  
+macOS / Linux: `sh install/install.sh`
+
+No administrator rights. It needs Node.js 18 or newer, copies the tool into your own application-data folder, fetches the Playwright MCP server and Playwright's own Chromium, registers the tool server `agent-browser` in Claude Code and Codex when they are installed, and ends with one line that begins with `OK` or `NOT OK`. `-CheckOnly` / `--check-only` repeats the check; `-NoRegister` / `--no-register` skips the registration. Run it yourself: it is your tool and your profile.
+
+## Use from a checkout
 
 ```
 npm ci

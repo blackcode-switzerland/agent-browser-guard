@@ -16,3 +16,9 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: node agent-browser-guard.mjs check
       - run: npm run test:browser
+      - name: The per-person installer (no registration), then its check
+        run: |
+          sh install/install.sh --no-register
+          sh install/install.sh --check-only
+        env:
+          AGENT_BROWSER_GUARD_ROOT: ${{ runner.temp }}/agent-browser-guard
