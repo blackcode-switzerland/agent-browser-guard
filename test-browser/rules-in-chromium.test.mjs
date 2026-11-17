@@ -58,7 +58,18 @@ test('rules hold in the real bundled Chromium', async () => {
   const a = agent(profile);
   try {
     await a.ask('initialize', { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'ci', version: '1' } });
-    const names = (await a.ask('tools/list', {})).result.tools.map(t => t.name);
+    const tools = (await a.ask('tools/list', {})).result.tools;
+    const names = tools.map(t => t.name);
+    // The upstream server names the element reference differently between versions (ref / target): follow its own schema.
+    const at = (tool, element, ref) => {
+      const properties = (tools.find(t => t.name === tool).inputSchema || {}).properties || {};
+      const where = {};
+      if ('element' in properties) where.element = element;
+      if ('target' in properties) where.target = ref;
+      if ('ref' in properties || !('target' in properties)) where.ref = ref;
+      return where;
+    };
+    console.log('browser_type takes:', Object.keys((tools.find(t => t.name === 'browser_type').inputSchema || {}).properties || {}).join(', '));
     assert.ok(names.includes('browser_navigate') && names.includes('browser_human_sign_in'), names.join(','));
     assert.ok(!names.some(n => /evaluate|run_code/.test(n)), names.join(','));
 
@@ -66,18 +77,18 @@ test('rules hold in the real bundled Chromium', async () => {
     const snapshot = (await a.call('browser_snapshot', {})).text;
     assert.match(snapshot, /platform authenticator: true/, 'the virtual authenticator was added before the first page');
 
-    const user = await a.call('browser_type', { element: 'User name', ref: refOf(snapshot, 'User name'), text: 'alex' });
+    const user = await a.call('browser_type', { ...at('browser_type', 'User name', refOf(snapshot, 'User name')), text: 'alex' });
     assert.equal(user.isError, false, user.text);
 
     // Named honestly, the call is refused before it reaches the browser.
-    const named = await a.call('browser_type', { element: 'Password', ref: refOf(snapshot, 'Second field'), text: 'hunter2' });
+    const named = await a.call('browser_type', { ...at('browser_type', 'Password', refOf(snapshot, 'Second field')), element: 'Password', text: 'hunter2' });
     assert.equal(named.isError, true);
     // Named innocently, it reaches the browser, and the guard inside the page must hold.
-    const sneaky = await a.call('browser_type', { element: 'Second field', ref: refOf(snapshot, 'Second field'), text: 'hunter2' });
+    const sneaky = await a.call('browser_type', { ...at('browser_type', 'Second field', refOf(snapshot, 'Second field')), text: 'hunter2' });
     const again = (await a.call('browser_snapshot', {})).text;
     assert.doesNotMatch(again, /hunter2/);
 
-    await a.call('browser_click', { element: 'Continue', ref: refOf(again, 'Continue') });
+    await a.call('browser_click', at('browser_click', 'Continue', refOf(again, 'Continue')));
     for (let i = 0; i < 50 && posted.length === 0; i++) await new Promise(r => setTimeout(r, 200));
     assert.equal(posted.length, 1, 'the form was submitted');
     assert.equal(posted[0].user, 'alex');
