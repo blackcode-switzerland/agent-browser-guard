@@ -1,11 +1,15 @@
-# Browser tests run here, on Linux CI, never on a person's machine.
+# Browser tests run here, on hosted CI machines with a throwaway profile and a local page, never on a person's machine.
 name: tests
 on:
   push:
   pull_request:
 jobs:
   test:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -16,9 +20,18 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: node agent-browser-guard.mjs check
       - run: npm run test:browser
-      - name: The per-person installer (no registration), then its check
+      - name: The per-person installer (no registration), then its check (macOS, Linux)
+        if: runner.os != 'Windows'
         run: |
           sh install/install.sh --no-register
           sh install/install.sh --check-only
         env:
           AGENT_BROWSER_GUARD_ROOT: ${{ runner.temp }}/agent-browser-guard
+      - name: The per-person installer (no registration), then its check (Windows PowerShell 5.1)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File install\install.ps1 -NoRegister -Root "$env:RUNNER_TEMP\agent-browser-guard"
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          powershell -NoProfile -ExecutionPolicy Bypass -File install\install.ps1 -CheckOnly -Root "$env:RUNNER_TEMP\agent-browser-guard"
+          if ($LASTEXITCODE -ne 0) { exit 1 }
