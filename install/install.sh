@@ -6,11 +6,11 @@
 #   Without registering: sh install/install.sh --no-register
 #
 # Copies the tool to your own application-support folder, fetches its one dependency (Microsoft's
-# Playwright MCP server) and Playwright's own Chromium, registers the tool server "agent-browser"
+# Playwright MCP server) and Playwright's own Chromium, registers the tool server "agent-browser-guard"
 # in Claude Code and Codex (when installed) and runs a check. Needs Node.js 18 or newer.
 # It never touches your Chrome, Safari or Edge or their profiles.
 set -eu
-NAME=agent-browser
+NAME=agent-browser-guard
 SOURCE=$(cd "$(dirname "$0")/.." && pwd)
 case "$(uname -s)" in
   Darwin) ROOT="${AGENT_BROWSER_GUARD_ROOT:-$HOME/Library/Application Support/AgentBrowserGuard}" ;;

@@ -11,7 +11,7 @@
 param([switch]$CheckOnly, [switch]$NoRegister, [string]$Root = (Join-Path $env:LOCALAPPDATA 'AgentBrowserGuard'))
 $ErrorActionPreference = 'Stop'
 $source = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
-$name = 'agent-browser'
+$name = 'agent-browser-guard'
 function Say($text) { Write-Host $text }
 # Runs a command-line program and returns its exit code; its output goes to the log file.
 function Quiet { $old = $ErrorActionPreference; $ErrorActionPreference = 'Continue'; $rest = @($args | Select-Object -Skip 1); try { & $args[0] @rest 2>&1 | Out-File -Append -Encoding utf8 $script:Log; return $LASTEXITCODE } finally { $ErrorActionPreference = $old } }
