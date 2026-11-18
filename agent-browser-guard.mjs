@@ -4,6 +4,7 @@
 //   agent-browser-guard mcp                 the tool server for Claude Code / Codex (stdin/stdout)
 //   agent-browser-guard sign-in <https url> opens a window for the PERSON to sign in; agents have no access to it
 //   agent-browser-guard check               one line: is everything in place
+//   agent-browser-guard install-browser     downloads Playwright's own Chromium (about 150 MB, once)
 //   agent-browser-guard version
 //
 // It wraps Microsoft's Playwright MCP server and adds rules that an agent cannot switch off; see lib/rules.mjs.
@@ -12,6 +13,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { profileDir, launchArgs, upstreamConfig, signInUrlProblem } from './lib/rules.mjs';
 import { runProxy, spawnUpstream } from './lib/proxy.mjs';
@@ -31,6 +33,23 @@ async function bundledChromium() {
   const { chromium } = playwright();
   const file = chromium.executablePath();
   return fs.existsSync(file) ? file : null;
+}
+
+let chromiumSeen = false;
+/** Null when the bundled Chromium is on disk; otherwise what is missing and how a person fixes it. */
+function browserProblem() {
+  if (chromiumSeen) return null;
+  try { const { chromium } = playwright(); chromiumSeen = fs.existsSync(chromium.executablePath()); } catch { chromiumSeen = false; }
+  return chromiumSeen ? null
+    : `The browser for agents is not downloaded on this computer yet (about 150 MB, once). An agent cannot do this; a person runs: "${process.execPath}" "${fileURLToPath(import.meta.url)}" install-browser`;
+}
+
+function installBrowser() {
+  const cli = path.join(path.dirname(createRequire(require.resolve('@playwright/mcp/package.json')).resolve('playwright/package.json')), 'cli.js');
+  const done = spawnSync(process.execPath, [cli, 'install', 'chromium'], { stdio: 'inherit' });
+  if (done.status === 0 && !browserProblem()) { console.log('OK: the browser is installed.'); return 0; }
+  console.log('NOT OK: the browser download did not finish. Check the network connection and run this command again.');
+  return 1;
 }
 
 async function addAuthenticator(page) {
@@ -80,6 +99,7 @@ async function mcp() {
   await runProxy({
     startUpstream: () => spawnUpstream(process.execPath, upstreamCli(), configPath, env),
     humanSignIn,
+    browserProblem,
     input: process.stdin, output: process.stdout,
     log: line => process.stderr.write(`[agent-browser-guard] ${line}\n`),
   });
@@ -89,12 +109,13 @@ async function mcp() {
 const [command, ...rest] = process.argv.slice(2);
 if (command === 'mcp' && rest.length === 0) await mcp();
 else if (command === 'check' && rest.length === 0) process.exitCode = await check();
+else if (command === 'install-browser' && rest.length === 0) process.exitCode = installBrowser();
 else if (command === 'version' && rest.length === 0) console.log(`agent-browser-guard ${pkg.version}`);
 else if (command === 'sign-in' && rest.length === 1) {
   const problem = signInUrlProblem(rest[0]);
   if (problem) { console.error(problem); process.exitCode = 2; }
   else console.log(await humanSignIn(rest[0]));
 } else {
-  console.error('usage: agent-browser-guard mcp | sign-in <https url> | check | version   (no other options: the browser, the profile and the rules are fixed)');
+  console.error('usage: agent-browser-guard mcp | sign-in <https url> | check | install-browser | version   (no other options: the browser, the profile and the rules are fixed)');
   process.exitCode = 2;
 }

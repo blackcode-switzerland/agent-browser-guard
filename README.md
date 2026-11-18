@@ -37,6 +37,7 @@ Register `node /path/to/agent-browser-guard.mjs mcp` as a stdio MCP server in yo
 | `mcp` | the tool server (stdin/stdout) |
 | `sign-in <https url>` | opens a window for the person to sign in |
 | `check` | one line: is everything in place |
+| `install-browser` | downloads Playwright's own Chromium (about 150 MB, once) |
 | `version` | the version |
 
 Profile folder: `%LOCALAPPDATA%\AgentBrowser\profile` (Windows), `~/Library/Application Support/AgentBrowser/profile` (macOS), `~/.local/share/agent-browser/profile` (Linux). `AGENT_BROWSER_PROFILE` overrides it (used by the tests for a throwaway profile). Agent sessions run without a window; `AGENT_BROWSER_HEADED=1` shows it.

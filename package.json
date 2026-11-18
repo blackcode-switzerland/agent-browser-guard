@@ -1,6 +1,6 @@
 {
   "name": "agent-browser-guard",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A browser for a person's agents with the person's own signed-in profile: Microsoft's Playwright MCP server behind rules an agent cannot switch off.",
   "type": "module",
   "license": "MIT",

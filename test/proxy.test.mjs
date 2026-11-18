@@ -51,6 +51,26 @@ test('a blocked tool and a secret field never reach the upstream server', async 
   await s.end();
 });
 
+test('without the browser every call says what is missing and reaches nothing', async () => {
+  const input = new PassThrough(), output = new PassThrough();
+  let missing = 'The browser for agents is not downloaded on this computer yet';
+  let started = 0;
+  const done = runProxy({
+    startUpstream: () => { started++; return spawn(process.execPath, [fake], { stdio: ['pipe', 'pipe', 'inherit'] }); },
+    humanSignIn: async () => 'x', input, output, browserProblem: () => missing,
+  });
+  const answers = new Map();
+  readline.createInterface({ input: output }).on('line', line => { const m = JSON.parse(line); answers.get(m.id)?.(m); });
+  const ask = (id, name) => new Promise(resolve => { answers.set(id, resolve); input.write(JSON.stringify({ jsonrpc: '2.0', id, method: 'tools/call', params: { name, arguments: { url: 'https://example.com' } } }) + '\n'); });
+  const refused = await ask(1, 'browser_navigate');
+  assert.equal(refused.result.isError, true); assert.match(said(refused), /not downloaded/); assert.doesNotMatch(said(refused), /upstream ran/);
+  const signIn = await ask(2, SIGN_IN_TOOL);
+  assert.equal(signIn.result.isError, true); assert.match(said(signIn), /not downloaded/);
+  missing = null;
+  assert.match(said(await ask(3, 'browser_navigate')), /upstream ran browser_navigate/);
+  input.end(); await done;
+});
+
 test('human sign-in: the agent browser is closed first, then a fresh one is started and works', async () => {
   const s = session();
   await s.ask('initialize', {});
